@@ -1,0 +1,99 @@
+* {
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+}
+
+.preview-container {
+    background: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.input-field {
+    transition: all 0.2s;
+}
+
+.input-field:focus {
+    ring: 2px;
+    ring-color: rgb(59 130 246);
+}
+
+.table-row:hover {
+    background-color: rgb(249 250 251);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.modal-overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    .print-only {
+        display: block !important;
+    }
+}
+
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 商品弹窗样式 */
+.item-modal-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px 40px;
+    gap: 8px;
+}
+
+.item-display-grid {
+    display: grid;
+    grid-template-columns: 40px 50px 2fr 1fr 1fr 1fr 1fr 80px 60px;
+    gap: 8px;
+}

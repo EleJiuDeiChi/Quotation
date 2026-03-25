@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一键生成报价单系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-14">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="SystemManager.editSystemInfo()">
+                        <div id="systemLogo" class="h-7 w-7 text-blue-600 mr-2 flex items-center justify-center">
+                            <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h1 id="systemName" class="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors">一键生成报价单</h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="SystemManager.showConfigModal()" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">我的配置</button>
+                    <button onclick="LibraryManager.showLibraryModal('customer')" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">客户库</button>
+                    <button onclick="LibraryManager.showLibraryModal('product')" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">商品库</button>
+                    <button onclick="LibraryManager.showLibraryModal('history')" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">报价历史</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="max-w-7xl mx-auto p-4">
+        <div class="flex gap-4" style="height: calc(100vh - 80px);">
+            <!-- 左侧录入区 - 缩小宽度 -->
+            <div class="w-5/12 overflow-y-auto scrollbar-thin pr-2">
+                <!-- 基础信息录入 -->
+                <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-base font-semibold text-gray-900 flex items-center">
+                            <span class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-2">1</span>
+                            基础信息
+                        </h2>
+                        <button onclick="LibraryManager.loadFromCustomerLibrary()" class="text-xs text-blue-600 hover:text-blue-800">从客户库选择</button>
+                    </div>
+
+                    <!-- 对方信息 -->
+                    <div class="mb-4">
+                        <h3 class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">对方（客户）信息</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="col-span-2">
+                                <input type="text" id="customerName" class="input-field w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="客户名称 *">
+                            </div>
+                            <div>
+                                <input type="text" id="customerContact" class="input-field w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md" placeholder="联系人">
+                            </div>
+                            <div>
+                                <input type="tel" id="customerPhone" class="input-field w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md" placeholder="联系电话">
+                            </div>
+                            <div class="col-span-2">
+                                <input type="text" id="customerAddress" class="input-field w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md" placeholder="收货/联系地址">
+                            </div>
+                            <div class="col-span-2">
+                                <input type="email" id="customerEmail" class="input-field w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md" placeholder="邮箱">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 报价单基础属性 -->
+                    <div>
+                        <h3 class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">报价单属性</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="col-span-2">
+                                <div class="flex">
+                                    <input type="text" id="quoteNumber" class="input-field flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-l-md" placeholder="报价单编号 *">
+                                    <button onclick="UIUtils.generateQuoteNumber()" class="px-3 py-1.5 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200 text-xs">自动生成</button>
+                                </div>
+                            </div>
+                            <div>
+                                <input type="date" id="quoteDate" class="input-field w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md">
+                            </div>
+                            <div class="flex">
+                                <input type="number" id="validityDays" class="input-field flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-l-md" value="30" min="1">
+                                <span class="px-2 py-1.5 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md text-xs text-gray-600">天</span>
+                            </div>
+                            <div class="col-span-2">
+                                <select id="currency" class="input-field w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md" onchange="onCurrencyChange()">
+                                    <option value="CNY">人民币 (CNY) - ¥</option>
+                                    <option value="USD">美元 (USD) - $</option>
+                                    <option value="EUR">欧元 (EUR) - €</option>
+                                    <option value="GBP">英镑 (GBP) - £</option>
+                                    <option value="JPY">日元 (JPY) - ¥</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商品/服务明细 - 简化显示 -->
+                <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-base font-semibold text-gray-900 flex items-center">
+                            <span class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-2">2</span>
+                            商品/服务明细
+                        </h2>
+                        <div class="space-x-2">
+                            <button onclick="ItemManager.showBatchAddModal()" class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100">批量</button>
+                            <button onclick="LibraryManager.loadFromProductLibrary()" class="text-xs text-blue-600 hover:text-blue-800">商品库</button>
+                        </div>
+                    </div>
+
+                    <!-- 明细列表 - 简化显示 -->
+                    <div id="itemsList" class="space-y-2 mb-3">
+                        <!-- 动态生成的商品列表 -->
+                    </div>
+
+                    <!-- 添加按钮 -->
+                    <button onclick="ItemManager.showAddItemModal()" class="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors text-sm">+ 添加商品/服务</button>
+
+                    <!-- 汇总计算 -->
+                    <div class="mt-4 bg-gray-50 rounded-lg p-3">
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">税率</label>
+                                <select id="taxRate" class="input-field w-full px-2 py-1 text-sm border border-gray-300 rounded" onchange="calculateTotals()">
+                                    <option value="0.13">13%</option>
+                                    <option value="0.09">9%</option>
+                                    <option value="0.06">6%</option>
+                                    <option value="0">0%</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">整单折扣</label>
+                                <select id="orderDiscount" class="input-field w-full px-2 py-1 text-sm border border-gray-300 rounded" onchange="calculateTotals()">
+                                    <option value="1">无折扣</option>
+                                    <option value="0.95">95折</option>
+                                    <option value="0.9">9折</option>
+                                    <option value="0.85">85折</option>
+                                    <option value="0.8">8折</option>
+                                    <option value="0.7">7折</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="space-y-1 text-right text-sm">
+                            <div class="flex justify-between"><span class="text-gray-600">小计：</span><span id="subtotal" class="font-medium currency-display">¥0.00</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">税额：</span><span id="taxAmount" class="font-medium currency-display">¥0.00</span></div>
+                            <div class="flex justify-between text-base font-bold text-blue-600 pt-1 border-t"><span>最终报价：</span><span id="finalTotal" class="currency-display">¥0.00</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 附加条款与备注 -->
+                <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-base font-semibold text-gray-900 flex items-center">
+                            <span class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mr-2">3</span>
+                            附加条款与备注
+                        </h2>
+                        <button onclick="TermManager.showTermManager()" class="text-xs text-blue-600 hover:text-blue-800">管理预设条款</button>
+                    </div>
+
+                    <!-- 预设条款 -->
+                    <div id="presetTerms" class="mb-3 space-y-1">
+                        <!-- 动态生成的预设条款 -->
+                    </div>
+
+                    <!-- 自定义备注 -->
+                    <textarea id="customRemarks" rows="3" class="input-field w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="请输入其他备注信息..."></textarea>
+                </div>
+
+                <!-- 保存按钮 -->
+                <div class="flex justify-center space-x-3 mb-4">
+                    <button onclick="UIUtils.saveDraft()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm">保存草稿</button>
+                </div>
+            </div>
+
+            <!-- 右侧预览区 - 缩小宽度 -->
+            <div class="w-7/12 bg-gray-100 rounded-lg p-4 overflow-y-auto scrollbar-thin">
+                <div class="sticky top-0 bg-gray-100 pb-3 z-10">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-base font-semibold text-gray-900">实时预览</h2>
+                        <div class="space-x-1">
+                            <button onclick="UIUtils.zoomPreview(0.8)" class="p-1.5 bg-white rounded hover:bg-gray-50" title="缩小">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
+                            </button>
+                            <button onclick="UIUtils.zoomPreview(1)" class="p-1.5 bg-white rounded hover:bg-gray-50" title="原始大小">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                            </button>
+                            <button onclick="UIUtils.zoomPreview(1.2)" class="p-1.5 bg-white rounded hover:bg-gray-50" title="放大">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                            </button>
+                            <button onclick="ExportManager.showExportModal()" class="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700" title="导出">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 预览内容 -->
+                <div id="previewContainer" class="preview-container rounded-lg p-6 min-h-[600px]" style="transform-origin: top center;">
+                    <div id="quotationPreview"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：添加/编辑商品 -->
+    <div id="itemModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900" id="itemModalTitle">添加商品/服务</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">名称 <span class="text-red-500">*</span></label>
+                        <input type="text" id="modalItemName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="商品名称">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">规格</label>
+                        <input type="text" id="modalItemSpec" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="规格型号">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">单位</label>
+                        <input type="text" id="modalItemUnit" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="个/件/套">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">单价 <span class="text-red-500">*</span></label>
+                        <input type="number" id="modalItemPrice" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="0.00" step="0.01" min="0" oninput="ItemManager.updateModalAmountPreview()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">数量 <span class="text-red-500">*</span></label>
+                        <input type="number" id="modalItemQuantity" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="1" step="1" min="1" value="1" oninput="ItemManager.updateModalAmountPreview()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">折扣</label>
+                        <select id="modalItemDiscount" class="w-full px-3 py-2 border border-gray-300 rounded-md" onchange="ItemManager.updateModalAmountPreview()">
+                            <option value="1">无折扣</option>
+                            <option value="0.95">95折</option>
+                            <option value="0.9">9折</option>
+                            <option value="0.85">85折</option>
+                            <option value="0.8">8折</option>
+                            <option value="0.7">7折</option>
+                            <option value="0.5">5折</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <span id="modalAmountPreview" class="text-lg font-semibold text-blue-600">金额: ¥0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="UIUtils.closeModal('itemModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">取消</button>
+                <button onclick="ItemManager.confirmItemModal()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：批量添加 -->
+    <div id="batchAddModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">批量添加商品</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-2">格式：名称|规格|单位|单价|数量|折扣（每行一个）</p>
+                <textarea id="batchInput" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm" placeholder="示例：&#10;笔记本电脑|14寸|台|5000|2|1&#10;鼠标|无线|个|100|5|0.9"></textarea>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="UIUtils.closeModal('batchAddModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">取消</button>
+                <button onclick="ItemManager.confirmBatchAdd()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">确认添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：条款管理 -->
+    <div id="termManagerModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">管理预设条款</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <div class="flex space-x-2">
+                        <input type="text" id="newTermInput" class="flex-1 px-3 py-2 border border-gray-300 rounded-md" placeholder="输入新条款内容">
+                        <button onclick="TermManager.addCustomTerm()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">添加</button>
+                    </div>
+                </div>
+                <div id="termList" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- 动态生成的条款列表 -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button onclick="UIUtils.closeModal('termManagerModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：系统信息 -->
+    <div id="systemInfoModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">系统信息设置</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">系统名称</label>
+                    <input type="text" id="editSystemName" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="一键生成报价单">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="UIUtils.closeModal('systemInfoModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">取消</button>
+                <button onclick="SystemManager.saveSystemInfo()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：配置 -->
+    <div id="configModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">我的配置</h3>
+            </div>
+            <div class="p-6 space-y-6">
+                <!-- 我方信息配置 -->
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-3 pb-2 border-b">我方信息</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">公司名称 <span class="text-red-500">*</span></label>
+                            <input type="text" id="defaultCompanyName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="您的公司名称">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">联系人</label>
+                            <input type="text" id="defaultContact" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="联系人姓名">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">联系电话</label>
+                            <input type="text" id="defaultPhone" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="联系电话">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">公司地址</label>
+                            <input type="text" id="defaultAddress" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="公司地址">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">公司LOGO</label>
+                            <div class="flex items-center space-x-3">
+                                <div id="configLogoPreview" class="w-16 h-16 border border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 cursor-pointer" onclick="document.getElementById('configLogoUpload').click()">
+                                    <span class="text-gray-400 text-xs">LOGO</span>
+                                </div>
+                                <input type="file" id="configLogoUpload" accept="image/jpeg,image/png" class="hidden" onchange="SystemManager.handleConfigLogoUpload(event)">
+                                <span class="text-sm text-gray-500">点击上传 LOGO（可选）</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 默认配置 -->
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-3 pb-2 border-b">默认配置</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">默认有效期（天）</label>
+                            <input type="number" id="defaultValidityDays" class="w-full px-3 py-2 border border-gray-300 rounded-md" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">默认税率</label>
+                            <select id="defaultTaxRate" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <option value="0.13">13%</option>
+                                <option value="0.09">9%</option>
+                                <option value="0.06">6%</option>
+                                <option value="0">0%</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">报价单编号前缀</label>
+                            <input type="text" id="quoteNumberPrefix" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="BQ">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF导出选项 -->
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-3 pb-2 border-b">PDF导出选项</h4>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" id="pdfWatermark" class="rounded border-gray-300 text-blue-600">
+                        <span class="text-sm text-gray-700">添加水印</span>
+                    </label>
+                    <label class="flex items-center space-x-2 mt-2">
+                        <input type="checkbox" id="showPageNumber" class="rounded border-gray-300 text-blue-600">
+                        <span class="text-sm text-gray-700">显示页码</span>
+                    </label>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="UIUtils.closeModal('configModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">取消</button>
+                <button onclick="SystemManager.saveConfig()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：客户库 -->
+    <div id="customerLibraryModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">客户库</h3>
+                <div class="flex space-x-2">
+                    <button onclick="LibraryManager.exportLibrary('customer')" class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">导出</button>
+                    <label class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200 cursor-pointer">
+                        导入
+                        <input type="file" class="hidden" accept=".json" onchange="LibraryManager.importLibrary(event, 'customer')">
+                    </label>
+                </div>
+            </div>
+            <div class="p-6">
+                <!-- 添加客户表单 -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                    <h4 class="font-medium text-gray-900 mb-3 pb-2 border-b border-gray-200">添加新客户</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">客户名称 <span class="text-red-500">*</span></label>
+                            <input type="text" id="newCustomerName" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="客户名称">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">联系人</label>
+                            <input type="text" id="newCustomerContact" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="联系人姓名">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">联系电话</label>
+                            <input type="text" id="newCustomerPhone" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="联系电话">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">地址</label>
+                            <input type="text" id="newCustomerAddress" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="客户地址">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">邮箱</label>
+                            <input type="email" id="newCustomerEmail" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="邮箱地址">
+                        </div>
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                        <button onclick="LibraryManager.addCustomer()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">添加客户</button>
+                    </div>
+                </div>
+
+                <input type="text" id="customerSearch" class="w-full px-3 py-2 border border-gray-300 rounded-md mb-4" placeholder="搜索客户..." oninput="LibraryManager.renderCustomerList(this.value)">
+                <div id="customerList" class="space-y-2 max-h-80 overflow-y-auto">
+                    <!-- 动态生成的客户列表 -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button onclick="UIUtils.closeModal('customerLibraryModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：商品库 -->
+    <div id="productLibraryModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">商品库</h3>
+                <div class="flex space-x-2">
+                    <button onclick="LibraryManager.exportLibrary('product')" class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">导出</button>
+                    <label class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200 cursor-pointer">
+                        导入
+                        <input type="file" class="hidden" accept=".json" onchange="LibraryManager.importLibrary(event, 'product')">
+                    </label>
+                </div>
+            </div>
+            <div class="p-6">
+                <!-- 添加商品表单 -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                    <h4 class="font-medium text-gray-900 mb-3 pb-2 border-b border-gray-200">添加新商品</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">商品名称 <span class="text-red-500">*</span></label>
+                            <input type="text" id="newProductName" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="商品名称">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">规格</label>
+                            <input type="text" id="newProductSpec" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="规格型号">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">单位</label>
+                            <input type="text" id="newProductUnit" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="个/件/套">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">单价 <span class="text-red-500">*</span></label>
+                            <input type="number" id="newProductPrice" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                        <button onclick="LibraryManager.addProduct()" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">添加商品</button>
+                    </div>
+                </div>
+
+                <input type="text" id="productSearch" class="w-full px-3 py-2 border border-gray-300 rounded-md mb-4" placeholder="搜索商品..." oninput="LibraryManager.renderProductList(this.value)">
+                <div id="productList" class="space-y-2 max-h-80 overflow-y-auto">
+                    <!-- 动态生成的商品列表 -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button onclick="UIUtils.closeModal('productLibraryModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：历史记录 -->
+    <div id="historyLibraryModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">历史报价</h3>
+                <div class="flex space-x-2">
+                    <button onclick="LibraryManager.exportLibrary('history')" class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">导出</button>
+                    <label class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200 cursor-pointer">
+                        导入
+                        <input type="file" class="hidden" accept=".json" onchange="LibraryManager.importLibrary(event, 'history')">
+                    </label>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="flex space-x-2 mb-4">
+                    <input type="text" id="historySearch" class="flex-1 px-3 py-2 border border-gray-300 rounded-md" placeholder="搜索历史报价..." oninput="LibraryManager.renderHistoryList(this.value)">
+                    <select id="historyStatusFilter" class="px-3 py-2 border border-gray-300 rounded-md" onchange="LibraryManager.renderHistoryList()">
+                        <option value="">全部状态</option>
+                        <option value="quoted">已报价</option>
+                        <option value="draft">草稿</option>
+                    </select>
+                </div>
+                <div id="historyList" class="space-y-2 max-h-80 overflow-y-auto">
+                    <!-- 动态生成的历史列表 -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button onclick="UIUtils.closeModal('historyLibraryModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：导出选项 -->
+    <div id="exportModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">导出报价单</h3>
+            </div>
+            <div class="p-6 space-y-3">
+                <button onclick="ExportManager.exportPDF(); UIUtils.closeModal('exportModal');" class="w-full py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                    <span>导出为 PDF</span>
+                </button>
+                <button onclick="ExportManager.exportImage(); UIUtils.closeModal('exportModal');" class="w-full py-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span>导出为 图片</span>
+                </button>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button onclick="UIUtils.closeModal('exportModal')" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载中模态框 -->
+    <div id="loadingModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl px-8 py-6 flex items-center space-x-4">
+            <div class="loading-spinner"></div>
+            <span id="loadingText" class="text-gray-700">正在处理...</span>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toast" class="fixed top-20 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50 bg-gray-800 text-white">
+        <span id="toastMessage">操作成功</span>
+    </div>
+
+    <!-- JavaScript模块 -->
+    <script src="js/config.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/items.js"></script>
+    <script src="js/terms.js"></script>
+    <script src="js/preview.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/library.js"></script>
+    <script src="js/system.js"></script>
+</body>
+</html>
